@@ -152,6 +152,8 @@ export default function ReceivingPage() {
             {extended.map((l, i) => (
               <div
                 key={i}
+                className="line-row"
+                data-first={i === 0}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(0, 2.2fr) 84px 110px auto auto 32px',
@@ -164,7 +166,7 @@ export default function ReceivingPage() {
                   marginBottom: 9,
                 }}
               >
-                <Field label={i === 0 ? 'Product' : undefined} error={lineErrors[i]?.productId}>
+                <Field label={'Product'} error={lineErrors[i]?.productId}>
                   <Select value={l.productId} onChange={(e) => onProductChange(i, e.target.value)}>
                     <option value="">Select product…</option>
                     {activeProducts.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
@@ -178,20 +180,20 @@ export default function ReceivingPage() {
                   {l.product && l.track.expiry && !l.expDate ? <span className="field-error">Expiry date required for this product</span> : null}
                   {l.product && l.track.batch && !l.batchNo ? <span className="field-error">Batch number required for this product</span> : null}
                 </Field>
-                <Field label={i === 0 ? 'Qty' : undefined}>
+                <Field label={'Qty'}>
                   <TextInput type="number" min="1" step="1" value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} placeholder="0" />
                   {l.qty !== '' && !l.hasQty ? <span className="field-error">≥ 1</span> : null}
                 </Field>
-                <Field label={i === 0 ? `Unit cost (${cur})` : undefined}>
+                <Field label={`Unit cost (${cur})`}>
                   <TextInput inputMode="decimal" value={l.unitCost} onChange={(e) => setLine(i, { unitCost: e.target.value })} placeholder="0.00" />
                   {l.unitCost !== '' && !l.hasCost ? <span className="field-error">≥ 0</span> : null}
                 </Field>
-                <Field label={i === 0 ? 'Batch no.' : undefined}>
+                <Field label={'Batch no.'}>
                   {l.track.batch ? (
                     <TextInput value={l.batchNo} onChange={(e) => setLine(i, { batchNo: e.target.value })} placeholder="LOT-.." style={{ minWidth: 100 }} />
                   ) : <span className="muted" style={{ fontSize: 12 }}>n/a</span>}
                 </Field>
-                <Field label={i === 0 ? 'Expiry' : undefined}>
+                <Field label={'Expiry'}>
                   {l.track.expiry ? (
                     <TextInput type="date" min={date} value={l.expDate} onChange={(e) => setLine(i, { expDate: e.target.value })} />
                   ) : <span className="muted" style={{ fontSize: 12 }}>n/a</span>}

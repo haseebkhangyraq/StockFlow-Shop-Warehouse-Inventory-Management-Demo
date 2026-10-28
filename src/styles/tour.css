@@ -21,7 +21,13 @@
 .tour-x:hover { background: var(--surface-3); color: var(--text); }
 .tour-try { margin-bottom: 12px; }
 .tour-bar { height: 3px; background: var(--surface-3); border-radius: 9px; overflow: hidden; margin-bottom: 12px; }
-.tour-bar i { display: block; height: 100%; background: var(--primary); transition: width .3s ease; }
+.tour-bar i { display: block; height: 100%; width: 0; background: var(--primary); }
+.tour-bar i.run { animation: tourFill linear forwards; }
+.tour-bar i.idle { width: 100%; opacity: .35; }
+@keyframes tourFill { from { width: 0; } to { width: 100%; } }
+.tour-dots { display: flex; gap: 3px; margin-bottom: 8px; }
+.tour-dots span { flex: 1; height: 3px; border-radius: 9px; background: var(--surface-3); }
+.tour-dots span.on { background: var(--primary); }
 .tour-foot { display: flex; gap: 8px; align-items: center; }
 .tour-foot .spacer { flex: 1; }
-@media (prefers-reduced-motion: reduce) { .tour-spot, .tour-card, .tour-bar i { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot, .tour-card { transition: none; animation: none; } }

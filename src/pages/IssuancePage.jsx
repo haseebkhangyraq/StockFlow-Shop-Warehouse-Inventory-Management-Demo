@@ -133,8 +133,8 @@ export default function IssuancePage() {
             </div>
 
             {extended.map((l, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.4fr) 120px auto 32px', gap: 8, alignItems: 'start', padding: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 11, marginBottom: 9 }}>
-                <Field label={i === 0 ? 'Product' : undefined}>
+              <div key={i} className="line-row" data-first={i === 0} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.4fr) 120px auto 32px', gap: 8, alignItems: 'start', padding: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 11, marginBottom: 9 }}>
+                <Field label={'Product'}>
                   <Select value={l.productId} onChange={(e) => { setLine(i, { productId: e.target.value, qty: '' }); }}>
                     <option value="">Select product…</option>
                     {activeProducts.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
@@ -143,7 +143,7 @@ export default function IssuancePage() {
                     <span className="field-hint">Available at source: <strong style={{ color: 'var(--ok-strong)' }}>{l.avail}</strong> {l.product.unit}</span>
                   ) : null}
                 </Field>
-                <Field label={i === 0 ? 'Quantity' : undefined}>
+                <Field label={'Quantity'}>
                   <TextInput type="number" min="1" step="1" value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} placeholder="0" />
                   {l.qty !== '' && l.product && (!Number.isInteger(l.qtyNum) || l.qtyNum < 1) ? <span className="field-error">Whole number ≥ 1</span> : null}
                   {l.qty !== '' && l.product && l.qtyNum > l.avail ? <span className="field-error">Exceeds availability ({l.avail})</span> : null}

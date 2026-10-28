@@ -5,13 +5,15 @@
 // 'sf:start-tour' window event (the topbar help button fires it).
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X, MousePointerClick } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, MousePointerClick, Pause, Play, Square } from 'lucide-react';
 import { useInventory } from '../../context/InventoryContext';
 import { STEPS, tourStats } from './tourSteps';
 import '../../styles/tour.css';
 
 const KEY = 'sf_tour_done';
 const PAD = 8;
+/** Auto-advance time: reading time scaled to the copy length. */
+const stepMs = (s, stats) => 4500 + s.body(stats).length * 40;
 const store = {
   get: () => { try { return localStorage.getItem(KEY); } catch { return '1'; } },
   set: () => { try { localStorage.setItem(KEY, '1'); } catch { /* ignore */ } },
@@ -32,15 +34,19 @@ export default function Tour({ navigate, path, setMobileNav }) {
   const [idx, setIdx] = useState(-1); // -1 = closed
   const [rect, setRect] = useState(null);
   const [cardPos, setCardPos] = useState({});
+  const [playing, setPlaying] = useState(true); // timer slideshow; user can pause or stop
   const cardRef = useRef(null);
   const step = STEPS[idx];
   const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
 
-  const close = useCallback(() => { store.set(); setIdx(-1); setMobileNav(false); }, [setMobileNav]);
+  const close = useCallback(() => {
+    store.set(); setIdx(-1); setMobileNav(false);
+    document.documentElement.style.removeProperty('--tour-sheet-h');
+  }, [setMobileNav]);
 
   // start: first visit (after a beat) or on demand
   useEffect(() => {
-    const start = () => { setMobileNav(false); navigate('/dashboard'); setRect(null); setIdx(0); };
+    const start = () => { setMobileNav(false); navigate('/dashboard'); setRect(null); setPlaying(true); setIdx(0); };
     window.addEventListener('sf:start-tour', start);
     const t = store.get() ? null : setTimeout(start, 900);
     return () => { window.removeEventListener('sf:start-tour', start); clearTimeout(t); };
@@ -78,7 +84,14 @@ export default function Tour({ navigate, path, setMobileNav }) {
   // place the card: bottom sheet on phones, beside the target on desktop
   useLayoutEffect(() => {
     if (!rect || !cardRef.current) return;
-    if (isMobile()) return;
+    if (isMobile()) {
+      // tell the drawer how tall the bottom sheet is so it ends above it
+      const h = Math.ceil(cardRef.current.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--tour-sheet-h', `${h + 20}px`);
+      setCardPos((p) => (p.sheetH === h ? p : { sheetH: h }));
+      return;
+    }
+    document.documentElement.style.removeProperty('--tour-sheet-h');
     const c = cardRef.current.getBoundingClientRect();
     const W = window.innerWidth, H = window.innerHeight;
     if (rect.none) { setCardPos({ top: (H - c.height) / 2, left: (W - c.width) / 2 }); return; }
@@ -115,7 +128,7 @@ export default function Tour({ navigate, path, setMobileNav }) {
   if (!step) return null;
   const sheet = isMobile();
   const hasRect = rect && !rect.none;
-  const vh = window.innerHeight;
+  const vh = window.innerHeight - (sheet ? (cardPos.sheetH ?? 0) + 20 : 0);
   const spot = hasRect ? {
     top: Math.max(4, rect.top - PAD), left: Math.max(4, rect.left - PAD),
     width: rect.width + PAD * 2, height: Math.min(rect.height + PAD * 2, vh - 8),
@@ -133,9 +146,15 @@ export default function Tour({ navigate, path, setMobileNav }) {
         <h4>{step.title}</h4>
         <p>{step.body(tourStats(state))}</p>
         {act ? <button className="btn btn-secondary btn-sm tour-try" onClick={runAction}><MousePointerClick size={14} /> {act.label}</button> : null}
-        <div className="tour-bar"><i style={{ width: `${((idx + 1) / STEPS.length) * 100}%` }} /></div>
+        <div className="tour-dots" aria-hidden="true">{STEPS.map((_, i) => <span key={i} className={i <= idx ? 'on' : ''} />)}</div>
+        <div className="tour-bar">
+          {rect ? <i key={`${idx}-${playing}`} className={playing ? 'run' : 'idle'} style={{ animationDuration: `${stepMs(step, tourStats(state))}ms` }} onAnimationEnd={() => playing && go(1)} /> : null}
+        </div>
         <div className="tour-foot">
-          <button className="btn btn-ghost btn-sm" onClick={close}>Skip</button>
+          <button className="btn btn-ghost btn-sm" onClick={close} title="Stop presentation"><Square size={12} /> Stop</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pause auto-play' : 'Resume auto-play'} title={playing ? 'Pause auto-play' : 'Auto-play'}>
+            {playing ? <Pause size={13} /> : <Play size={13} />}
+          </button>
           <span className="spacer" />
           <button className="btn btn-secondary btn-sm" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous step"><ChevronLeft size={14} /> Back</button>
           <button className="btn btn-primary btn-sm" onClick={() => go(1)}>{idx === STEPS.length - 1 ? 'Finish' : 'Next'} {idx === STEPS.length - 1 ? null : <ChevronRight size={14} />}</button>

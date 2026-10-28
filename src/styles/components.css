@@ -271,6 +271,7 @@
   color: var(--text);
 }
 .pos-toolbar .barcode-input input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13); }
+.pos-toolbar .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .pos-toolbar .barcode-input svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .pos-cat-chips { display: flex; gap: 7px; overflow-x: auto; padding: 11px 16px; border-bottom: 1px solid var(--border); }
 .cat-chip {
