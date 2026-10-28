@@ -1,0 +1,27 @@
+.tour-root { position: fixed; inset: 0; z-index: 200; }
+.tour-block { position: absolute; inset: 0; } /* swallows clicks on the app while touring */
+.tour-spot {
+  position: fixed; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(8, 14, 28, 0.68), 0 0 0 2px var(--primary), 0 0 22px 2px rgba(59, 130, 246, 0.55);
+  transition: top .3s ease, left .3s ease, width .3s ease, height .3s ease;
+}
+.tour-spot.none { top: 50%; left: 50%; width: 0; height: 0; box-shadow: 0 0 0 9999px rgba(8, 14, 28, 0.68); }
+.tour-card {
+  position: fixed; width: 340px; max-width: calc(100vw - 24px);
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow-lg); padding: 18px 18px 14px;
+  animation: tourIn .25s ease both; transition: top .3s ease, left .3s ease;
+}
+.tour-card.sheet { left: 10px; right: 10px; width: auto; max-width: none; top: auto; bottom: calc(10px + env(safe-area-inset-bottom)); }
+@keyframes tourIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tour-card h4 { font-size: 16px; font-weight: 700; margin: 2px 24px 6px 0; }
+.tour-card p { font-size: 13.5px; line-height: 1.5; color: var(--text-2); margin: 0 0 12px; }
+.tour-step { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); }
+.tour-x { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--muted); padding: 6px; border-radius: 8px; }
+.tour-x:hover { background: var(--surface-3); color: var(--text); }
+.tour-try { margin-bottom: 12px; }
+.tour-bar { height: 3px; background: var(--surface-3); border-radius: 9px; overflow: hidden; margin-bottom: 12px; }
+.tour-bar i { display: block; height: 100%; background: var(--primary); transition: width .3s ease; }
+.tour-foot { display: flex; gap: 8px; align-items: center; }
+.tour-foot .spacer { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .tour-spot, .tour-card, .tour-bar i { transition: none; animation: none; } }

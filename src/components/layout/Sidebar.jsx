@@ -77,6 +77,7 @@ export default function Sidebar({ path, navigate, collapsed, onToggle, badges })
                 key={itemPath}
                 className={`nav-item${path === itemPath ? ' active' : ''}`}
                 onClick={() => navigate(itemPath)}
+                data-tour={`nav-${itemPath}`}
                 title={collapsed ? label : undefined}
                 aria-current={path === itemPath ? 'page' : undefined}
               >

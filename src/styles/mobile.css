@@ -1,0 +1,48 @@
+/* Mobile / small-screen layer. Imported last so it overrides desktop rules.
+   <=900px: sidebar becomes a slide-in drawer; <=720px phone tweaks. */
+
+.menu-btn { display: none; }
+.mobile-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0; width: min(290px, 86vw); z-index: 86;
+  box-shadow: var(--shadow-lg); animation: drawerLeft 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.mobile-drawer .sidebar { width: 100%; height: 100%; height: 100dvh; }
+@keyframes drawerLeft { from { transform: translateX(-100%); } to { transform: none; } }
+
+@media (max-width: 900px) {
+  .desktop-sidebar { display: none !important; }
+  .menu-btn { display: grid; }
+  .topbar { padding: 0 12px; gap: 10px; }
+  .global-search { max-width: none; margin-left: 0; }
+  .demo-chip { display: none; }
+  .modal-overlay { padding: 12px; }
+}
+
+@media (max-width: 720px) {
+  .topbar-title { display: none; }
+  .topbar-right { gap: 6px; }
+  .page-head-text { min-width: 0; flex-basis: 100%; }
+  .page-head-actions { width: 100%; }
+  .page-head-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .toolbar-left { min-width: 0; flex-basis: 100%; }
+  .toolbar .search { min-width: 0; flex: 1 1 100%; }
+  .toolbar select { flex: 1 1 140px; min-width: 0; }
+  .input, .select, .textarea, .global-search input { font-size: 16px; } /* stop iOS focus-zoom */
+  .btn, .icon-btn, .nav-item { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
+
+  /* modals become bottom sheets */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { max-width: 100% !important; border-radius: 18px 18px 0 0; max-height: 92dvh; animation: sheetIn 0.22s ease; }
+  .modal-body { padding: 16px; }
+  .modal-head, .modal-foot { padding-left: 16px; padding-right: 16px; }
+  .modal-foot { border-radius: 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  @keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .toast-host { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: none; }
+  .search-results { position: fixed; top: calc(var(--topbar-h) + 4px); left: 8px; right: 8px; width: auto !important; max-height: 70dvh; }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat-card { padding: 12px; }
+  .stat-value { font-size: 20px; }
+  .table-wrap { margin: 0 -2px; -webkit-overflow-scrolling: touch; }
+}

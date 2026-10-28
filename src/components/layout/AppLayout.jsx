@@ -1,8 +1,9 @@
 // src/components/layout/AppLayout.jsx
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import NotifPanel from './NotifPanel';
+import Tour from '../tour/Tour';
 import { ToastHost } from '../common/ui';
 import { useInventory } from '../../context/InventoryContext';
 import { ROUTES } from '../../hooks/useHashRoute';
@@ -20,8 +21,8 @@ export default function AppLayout({ path, navigate, children }) {
     return r ? r.label : 'StockFlow';
   }, [path]);
 
-  // close mobile nav on navigation
-  useEffect(() => { setMobileNav(false); }, [path]);
+  // drawer links close the drawer (done here, not in an effect, so the tour can open it on route change)
+  const navFromDrawer = (to) => { setMobileNav(false); navigate(to); };
 
   const expiry = useMemo(() => getExpiryAlerts(state), [state]);
   const badges = useMemo(() => ({
@@ -44,13 +45,10 @@ export default function AppLayout({ path, navigate, children }) {
         <>
           <div className="drawer-overlay" onClick={() => setMobileNav(false)} />
           <div
-            style={{
-              position: 'fixed', top: 0, left: 0, bottom: 0, width: 270, zIndex: 86,
-              boxShadow: 'var(--shadow-lg)',
-            }}
+            className="mobile-drawer"
             aria-label="Mobile navigation"
           >
-            <Sidebar path={path} navigate={navigate} collapsed={false} onToggle={() => setMobileNav(false)} badges={badges} />
+            <Sidebar path={path} navigate={navFromDrawer} collapsed={false} onToggle={() => setMobileNav(false)} badges={badges} />
           </div>
         </>
       ) : null}
@@ -92,6 +90,7 @@ export default function AppLayout({ path, navigate, children }) {
       />
 
       <ToastHost toasts={toasts} dismiss={dismissToast} />
+      <Tour navigate={navigate} path={path} setMobileNav={setMobileNav} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // src/components/layout/Topbar.jsx
 import { useState, useMemo } from 'react';
-import { Search, Bell, Sun, Moon, Package, Tag, ShoppingBag, ChevronDown, LogOut, Settings2, Menu, Database } from 'lucide-react';
+import { Search, Bell, CircleHelp, Sun, Moon, Package, Tag, ShoppingBag, ChevronDown, LogOut, Settings2, Menu, Database } from 'lucide-react';
 import { useInventory } from '../../context/InventoryContext';
 import { useClickOutside } from '../common/ui';
 import * as engine from '../../services/inventoryEngine';
@@ -35,7 +35,7 @@ function GlobalSearch({ navigate }) {
   };
 
   return (
-    <div className="global-search" ref={ref}>
+    <div className="global-search" ref={ref} data-tour="search">
       <Search size={15} className="search-ic" />
       <input
         placeholder="Search products, SKUs, barcodes…"
@@ -139,16 +139,19 @@ export default function Topbar({ pageLabel, navigate, onOpenNotifications, unrea
 
   return (
     <header className="topbar">
-      <button className="icon-btn" onClick={onOpenMobileNav} aria-label="Open navigation menu" style={{ display: 'grid' }}>
+      <button className="icon-btn menu-btn" onClick={onOpenMobileNav} aria-label="Open navigation menu">
         <Menu size={17} />
       </button>
       <div className="topbar-title">{pageLabel}</div>
       <GlobalSearch navigate={navigate} />
       <div className="topbar-right">
-        <button className="icon-btn" onClick={() => perform(engine.updateSettings, { theme: dark ? 'light' : 'dark' })} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}>
+        <button className="icon-btn" onClick={() => perform(engine.updateSettings, { theme: dark ? 'light' : 'dark' })} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'} data-tour="theme">
           {dark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <button className="icon-btn" onClick={onOpenNotifications} aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`} title="Notifications">
+        <button className="icon-btn" data-tour="help" onClick={() => window.dispatchEvent(new Event('sf:start-tour'))} aria-label="Replay product tour" title="Product tour">
+          <CircleHelp size={16} />
+        </button>
+        <button className="icon-btn" data-tour="notifs" onClick={onOpenNotifications} aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`} title="Notifications">
           <Bell size={16} />
           {unreadCount > 0 ? <span className="dot" /> : null}
         </button>
