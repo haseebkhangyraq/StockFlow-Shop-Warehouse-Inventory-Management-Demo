@@ -10,6 +10,7 @@ import { EmptyState, SearchInput, Badge, Pagination } from '../components/common
 import { getTopProducts } from '../services/reportingService';
 import { dayKey, addDays } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const PAGE_SIZE = 12;
 
@@ -123,6 +124,7 @@ export default function TopSellingPage() {
           <button className="btn btn-secondary" onClick={exportCsv} disabled={!rows.length}>
             <Download size={15} /> Export CSV
           </button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Top Sellers Print' })}><Print size={15} /> Print</button>
           {best ? (
             <span className="muted" style={{ fontSize: 11.5 }}>
               #1: <strong style={{ color: 'var(--text)' }}>{best.product.name}</strong> · {best.qty} {best.product.unit}

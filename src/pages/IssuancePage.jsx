@@ -13,6 +13,7 @@ import { ISSUE_REASONS } from '../utils/constants';
 import { available } from '../services/inventoryEngine';
 import { formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 export default function IssuancePage() {
   const { state, settings, formatMoney, perform } = useInventory();

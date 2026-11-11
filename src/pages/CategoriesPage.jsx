@@ -14,6 +14,7 @@ import {
 import { onHand, totalOnHand, calculateInventoryValue } from '../services/inventoryEngine';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const SWATCHES = [
   '#e07a3f', '#3f7fe0', '#e03f8f', '#b03fe0', '#3fae7a', '#3fb5e0', '#7a6ff0',
@@ -144,6 +145,7 @@ export default function CategoriesPage() {
             <Badge color="blue">{totalUnits.toLocaleString()} units</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Categories Print' })}><Print size={15} /> Print</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add category</button>
         </div>
       </div>

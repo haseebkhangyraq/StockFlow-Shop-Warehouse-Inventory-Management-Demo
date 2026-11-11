@@ -113,6 +113,7 @@ export default function ActivityLogPage() {
             <Badge color="teal">{rows.length} events</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Activity Log Print' })}><Print size={15} /> Print</button>
         </div>
       </div>
 

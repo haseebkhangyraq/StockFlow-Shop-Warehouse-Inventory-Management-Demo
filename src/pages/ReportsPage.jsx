@@ -14,6 +14,7 @@ import { EmptyState, Badge, ConfirmDialog } from '../components/common/ui';
 import { formatMoney } from '../utils/currency';
 import { dayKey, dayKeyLabel, addDays } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent, printTable } from '../utils/print';
 
 const RANGES = [
   { id: '30d', label: 'Last 30 days' },
@@ -85,6 +86,7 @@ export default function ReportsPage() {
           <Badge color="teal">{REPORT_LIST.length} reports</Badge>
           <button className="btn btn-secondary" onClick={() => setPreviewOpen(true)}><Boxes size={15} /> Export all</button>
           <button className="btn btn-primary" onClick={exportCsv} disabled={!built.rows.length}><Download size={15} /> Export this report</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: `${report.label} Report` })}><Print size={15} /> Print</button>
         </div>
       </div>
 

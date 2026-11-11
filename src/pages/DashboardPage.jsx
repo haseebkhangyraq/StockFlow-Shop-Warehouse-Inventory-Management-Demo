@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import {
   Package, Boxes, CircleDollarSign, AlertTriangle, XCircle, CalendarX2, CalendarClock,
   Hourglass, ShoppingCart, ArrowUpRight, Truck, PackagePlus, Warehouse as WarehouseIcon,
-  ClipboardList, RefreshCw,
+  ClipboardList, RefreshCw, Print,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import {
@@ -15,6 +15,7 @@ import { SalesAreaChart, ReceivedIssuedBars, CategoryDonut, HealthDonut, TopBars
 import { EmptyState, Badge, ConfirmDialog } from '../components/common/ui';
 import { formatMoney } from '../utils/currency';
 import { dayKey, addDays, eachDayKey, relativeTime, dayKeyLabel } from '../utils/dates';
+import { printPageContent } from '../utils/print';
 
 const RANGES = [
   { id: 'today', label: 'Today' },
@@ -111,6 +112,7 @@ export default function DashboardPage({ navigate }) {
           ))}
         </div>
       </div>
+      <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Dashboard Print' })}><Print size={15} /> Print</button>
 
       {rangeId === 'custom' ? (
         <div className="card card-pad" style={{ marginBottom: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>

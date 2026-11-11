@@ -17,6 +17,7 @@ import { onHand, available, reserved, stockStatus, expiryStatus, inTransit } fro
 import { formatMoney } from '../utils/currency';
 import { relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const PAGE_SIZE = 12;
 const STATUS_OPTS = [

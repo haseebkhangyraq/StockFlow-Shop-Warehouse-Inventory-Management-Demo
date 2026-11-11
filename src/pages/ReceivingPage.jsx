@@ -12,6 +12,7 @@ import { buildReport } from '../services/reportingService';
 import { formatMoney, parseMoneyInput, minorToInput } from '../utils/currency';
 import { dayKey, toDateInputValue, formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 export default function ReceivingPage() {
   const { state, settings, formatMoney, perform } = useInventory();

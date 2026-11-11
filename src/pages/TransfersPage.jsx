@@ -13,6 +13,7 @@ import { available, onHand, inTransit } from '../services/inventoryEngine';
 import { buildReport } from '../services/reportingService';
 import { formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 export default function TransfersPage() {
   const { state, settings, formatMoney, perform } = useInventory();
@@ -91,6 +92,7 @@ export default function TransfersPage() {
           <button className="btn btn-secondary" onClick={() => { const rep = buildReport(state, 'transfers'); downloadCSV('stockflow-transfer-register', rep.rows, rep.columns); }}>
             <Download size={15} /> Export register
           </button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Transfers Print' })}><Print size={15} /> Print</button>
           <button className="btn btn-primary" onClick={() => setCreateOpen(true)}><Plus size={15} /> New transfer</button>
         </div>
       </div>

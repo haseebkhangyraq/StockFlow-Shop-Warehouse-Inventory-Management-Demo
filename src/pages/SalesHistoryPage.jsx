@@ -11,6 +11,7 @@ import { formatDateTime, relativeTime } from '../utils/dates';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
 import { buildReport } from '../services/reportingService';
+import { printPageContent } from '../utils/print';
 import { ReceiptHTML, printReceipt } from '../components/pos/Receipt';
 import * as engine from '../services/inventoryEngine';
 
@@ -126,6 +127,7 @@ export default function SalesHistoryPage() {
             {totals.returned > 0 ? <Badge color="amber">{fmt(totals.returned)} returned</Badge> : null}
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Sales History Print' })}><Print size={15} /> Print</button>
         </div>
       </div>
 

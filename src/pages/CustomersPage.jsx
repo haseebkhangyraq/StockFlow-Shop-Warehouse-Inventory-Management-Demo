@@ -13,6 +13,7 @@ import {
 import { formatMoney } from '../utils/currency';
 import { formatDateTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const PAGE_SIZE = 9;
 const BLANK = { name: '', phone: '', email: '', notes: '' };
@@ -104,6 +105,7 @@ export default function CustomersPage() {
             <Badge color="green">{fmt(rows.reduce((a, r) => a + r.spend, 0))} lifetime sales</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Customers Print' })}><Print size={15} /> Print</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add customer</button>
         </div>
       </div>

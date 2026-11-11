@@ -17,6 +17,7 @@ import {
 import { formatDate, daysUntil, relativeTime } from '../utils/dates';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const PAGE_SIZE = 12;
 const SEG_IDS = ['expired', 'expiring_today', 'expiring_soon', 'dead_stock', 'healthy', 'all'];
@@ -178,6 +179,7 @@ export default function ExpiryPage() {
             {deadProducts.length ? <Badge color="gray">{deadProducts.length} dead products</Badge> : null}
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Expiry Print' })}><Print size={15} /> Print</button>
           <span className="muted" style={{ fontSize: 11.5 }}>warning window: <strong style={{ color: 'var(--text)' }}>{settings.expiryWarningDays} days</strong></span>
         </div>
       </div>

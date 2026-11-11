@@ -14,6 +14,7 @@ import {
 import { formatMoney } from '../utils/currency';
 import { formatDate } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printPageContent } from '../utils/print';
 
 const BLANK = { companyName: '', contactPerson: '', phone: '', email: '', address: '', notes: '' };
 
@@ -103,6 +104,7 @@ export default function SuppliersPage() {
             <Badge color="blue">{fmt(rows.reduce((a, r) => a + r.spend, 0))} purchased</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
+          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Suppliers Print' })}><Print size={15} /> Print</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add supplier</button>
         </div>
       </div>
