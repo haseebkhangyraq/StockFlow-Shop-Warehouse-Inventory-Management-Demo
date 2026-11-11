@@ -3,14 +3,32 @@
 // including the seeded demonstration history, clearly labelled.
 
 import { useMemo, useState } from 'react';
-import { Activity, Download, CircleAlert, ArrowDownRight, ArrowUpRight,
-  PackagePlus, PackageMinus, Truck, ShoppingCart, RefreshCw, SlidersHorizontal, XCircle,
-  Package, Building2, Users, Tags, History, ClipboardList,
+import {
+  Activity,
+  Download,
+  CircleAlert,
+  ArrowDownRight,
+  ArrowUpRight,
+  PackagePlus,
+  PackageMinus,
+  Truck,
+  ShoppingCart,
+  RefreshCw,
+  SlidersHorizontal,
+  XCircle,
+  Package,
+  Building2,
+  Users,
+  Tags,
+  History,
+  ClipboardList,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { EmptyState, SearchInput, Badge, Pagination } from '../components/common/ui';
 import { formatDateTime, dayKey, addDays } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
+import { printReport } from '../utils/print';
 
 const PAGE_SIZE = 40;
 
@@ -96,6 +114,41 @@ export default function ActivityLogPage() {
     ]);
   };
 
+  const printActivity = () => {
+    const cap = 150;
+    printReport({
+      title: 'Activity Log Report',
+      subtitle: `${rows.length} events${actionF !== 'all' ? ` · action: ${actionF.replace(/_/g, ' ')}` : ''}${sourceF !== 'all' ? ` · source: ${sourceF}` : ''}${periodF !== 'all' ? ` · period: last ${periodF}` : ''}${q ? ` · search: “${q}”` : ''}`,
+      summary: [
+        { label: 'Units received (in)', value: `+${inflow.toLocaleString()}` },
+        { label: 'Units issued / sold (out)', value: `−${outflow.toLocaleString()}` },
+        { label: 'Events listed', value: String(rows.length) },
+        { label: 'Net stock change', value: `${(inflow - outflow >= 0 ? '+' : '') + (inflow - outflow).toLocaleString()} units` },
+      ],
+      sections: [
+        {
+          heading: `Audit ledger (latest ${Math.min(cap, rows.length)} of ${rows.length})`,
+          columns: [
+            { label: 'Date & time' }, { label: 'Action' }, { label: 'Reference' },
+            { label: 'Product' }, { label: 'Location' }, { label: 'Qty change', numeric: true },
+            { label: 'Description' }, { label: 'Source' },
+          ],
+          rows: rows.slice(0, cap).map((a) => [
+            formatDateTime(a.at, settings.dateFormat),
+            a.action.replace(/_/g, ' '),
+            a.refId || '—',
+            state.products.find((p) => p.id === a.productId)?.name || '—',
+            state.locations.find((l) => l.id === a.locationId)?.name || '—',
+            a.qtyDelta == null ? '' : (a.qtyDelta > 0 ? `+${a.qtyDelta}` : String(a.qtyDelta)),
+            a.description || '—',
+            a.isSeeded ? 'seeded history' : 'this session',
+          ]),
+        },
+      ],
+      note: rows.length > cap ? `Showing the ${cap} most recent matching events — use Export CSV for the complete ledger.` : 'The audit ledger is append-only: records can never be edited or deleted.',
+    });
+  };
+
   const inflow = rows.filter((r) => r.qtyDelta > 0).reduce((a, r) => a + r.qtyDelta, 0);
   const outflow = rows.filter((r) => r.qtyDelta < 0).reduce((a, r) => a - r.qtyDelta, 0);
 
@@ -113,7 +166,7 @@ export default function ActivityLogPage() {
             <Badge color="teal">{rows.length} events</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Activity Log Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printActivity}><Printer size={15} /> Print report</button>
         </div>
       </div>
 

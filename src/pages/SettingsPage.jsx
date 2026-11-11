@@ -3,10 +3,7 @@
 // appearance and demo data controls — all persisted through the engine.
 
 import { useMemo, useState } from 'react';
-import {
-  Settings, Save, RotateCcw, Download, Database, Sun, Moon, BadgeDollarSign,
-  CalendarDays, ScanLine, ReceiptText, Building2, CheckCircle2, HardDriveDownload, Sparkles,
-} from 'lucide-react';
+import { Settings, Save, RotateCcw, Download, Database, Sun, Moon, BadgeDollarSign, CalendarDays, ScanLine, ReceiptText, Building2, CheckCircle2, HardDriveDownload, Sparkles } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
 import { exportBackup, storageAvailable } from '../services/persistenceService';

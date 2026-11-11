@@ -2,10 +2,7 @@
 // Reusable presentational building blocks shared by every page.
 
 import { useEffect, useRef, useState, Fragment } from 'react';
-import {
-  X, AlertTriangle, Info, CheckCircle2, CircleAlert, ChevronLeft, ChevronRight,
-  Search, Inbox, AlertOctagon,
-} from 'lucide-react';
+import { X, AlertTriangle, Info, CheckCircle2, CircleAlert, ChevronLeft, ChevronRight, Search, Inbox, AlertOctagon } from 'lucide-react';
 
 /* ------------------------------ Modal ------------------------------ */
 

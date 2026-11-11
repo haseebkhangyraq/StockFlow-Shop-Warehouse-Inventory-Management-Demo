@@ -11,7 +11,7 @@ import { formatDateTime, relativeTime } from '../utils/dates';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
 import { buildReport } from '../services/reportingService';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 import { ReceiptHTML, printReceipt } from '../components/pos/Receipt';
 import * as engine from '../services/inventoryEngine';
 
@@ -101,6 +101,38 @@ export default function SalesHistoryPage() {
     else setReturnErr(res.error);
   };
 
+  const printSales = () => printReport({
+    title: 'Sales Report',
+    subtitle: `${rows.length} receipts${locationF !== 'all' ? ` · shop: ${state.locations.find((l) => l.id === locationF)?.name}` : ''}${methodF !== 'all' ? ` · payment: ${methodF}` : ''}${statusF !== 'all' ? ` · status: ${statusMeta({ status: statusF }).label}` : ''}${q ? ` · search: “${q}”` : ''}`,
+    summary: [
+      { label: 'Receipts', value: String(rows.length) },
+      { label: 'Net total', value: fmt(totals.net) },
+      { label: 'Returned / refunded', value: fmt(totals.returned) },
+      { label: 'Units sold', value: totals.units.toLocaleString() },
+    ],
+    sections: [
+      {
+        heading: 'Sales register',
+        columns: [
+          { label: 'Receipt' }, { label: 'Date & time' }, { label: 'Shop' }, { label: 'Items sold' },
+          { label: 'Units', numeric: true }, { label: 'Net total', numeric: true }, { label: 'Payment' }, { label: 'Status' },
+        ],
+        rows: rows.map((s) => [
+          s.ref,
+          formatDateTime(s.createdAt, settings.dateFormat),
+          s.locationName,
+          s.lines.map((l) => `${l.qty} × ${(state.products.find((p) => p.id === l.productId)?.name || '—')}`).join('; '),
+          s.lines.reduce((a, l) => a + l.qty, 0),
+          fmt(Math.max(0, s.total - (s.returnedTotal || 0))),
+          s.paymentMethod.toUpperCase(),
+          s.status.label,
+        ]),
+        totals: ['Total', '', '', '', totals.units, fmt(totals.net), '', ''],
+      },
+    ],
+    note: 'Net total = sale total minus returns/refunds. Units are counted per receipt line. Returns restore eligible batches to the selling location.',
+  });
+
   const totals = rows.reduce(
     (a, s) => ({
       net: a.net + Math.max(0, s.total - (s.returnedTotal || 0)),
@@ -127,7 +159,7 @@ export default function SalesHistoryPage() {
             {totals.returned > 0 ? <Badge color="amber">{fmt(totals.returned)} returned</Badge> : null}
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Sales History Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printSales}><Printer size={15} /> Print report</button>
         </div>
       </div>
 

@@ -4,7 +4,15 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Tags, Download, Plus, Pencil, Trash2, Boxes, Palette, Info,
+  Tags,
+  Download,
+  Plus,
+  Pencil,
+  Trash2,
+  Boxes,
+  Palette,
+  Info,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
@@ -14,7 +22,7 @@ import {
 import { onHand, totalOnHand, calculateInventoryValue } from '../services/inventoryEngine';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const SWATCHES = [
   '#e07a3f', '#3f7fe0', '#e03f8f', '#b03fe0', '#3fae7a', '#3fb5e0', '#7a6ff0',
@@ -130,6 +138,32 @@ export default function CategoriesPage() {
       { label: 'Share of inventory', value: (r) => `${r.share.toFixed(1)}%` },
     ]);
   };
+  const printCategories = () => printReport({
+    title: 'Product Category Report',
+    subtitle: `${rows.length} categories`,
+    summary: [
+      { label: 'Categories', value: String(rows.length) },
+      { label: 'Total units', value: totalUnits.toLocaleString() },
+      { label: 'Catalog products', value: String(rows.reduce((a, r) => a + r.productCount, 0)) },
+      { label: 'Stock value', value: fmt(rows.reduce((a, r) => a + r.value, 0)) },
+    ],
+    sections: [
+      {
+        heading: 'Categories & inventory share',
+        columns: [
+          { label: 'Category' }, { label: 'Description' }, { label: 'Products', numeric: true },
+          { label: 'In stock', numeric: true }, { label: 'Units', numeric: true },
+          { label: 'Stock value', numeric: true }, { label: 'Share', numeric: true },
+        ],
+        rows: rows.map((c) => [
+          c.name, c.description || '—', c.productCount, c.stockSkus, c.units, fmt(c.value), `${c.share.toFixed(1)}%`,
+        ]),
+        totals: ['Total', '', rows.reduce((a, r) => a + r.productCount, 0), '', totalUnits, fmt(rows.reduce((a, r) => a + r.value, 0)), '100%'],
+      },
+    ],
+    note: 'Share = category stock value ÷ total inventory value (weighted average cost).',
+  });
+
   const totalUnits = rows.reduce((a, r) => a + r.units, 0);
 
   return (
@@ -145,7 +179,7 @@ export default function CategoriesPage() {
             <Badge color="blue">{totalUnits.toLocaleString()} units</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Categories Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printCategories}><Printer size={15} /> Print report</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add category</button>
         </div>
       </div>

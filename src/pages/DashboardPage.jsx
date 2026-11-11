@@ -1,10 +1,6 @@
 // src/pages/DashboardPage.jsx
 import { useMemo, useState } from 'react';
-import {
-  Package, Boxes, CircleDollarSign, AlertTriangle, XCircle, CalendarX2, CalendarClock,
-  Hourglass, ShoppingCart, ArrowUpRight, Truck, PackagePlus, Warehouse as WarehouseIcon,
-  ClipboardList, RefreshCw, Print,
-} from 'lucide-react';
+import { Package, Boxes, CircleDollarSign, AlertTriangle, XCircle, CalendarX2, CalendarClock, Hourglass, ShoppingCart, ArrowUpRight, Truck, PackagePlus, Warehouse as WarehouseIcon, ClipboardList, RefreshCw, Printer } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import {
   calculateDashboardMetrics, getStockAlerts, getExpiryAlerts, getDeadStock,
@@ -15,7 +11,7 @@ import { SalesAreaChart, ReceivedIssuedBars, CategoryDonut, HealthDonut, TopBars
 import { EmptyState, Badge, ConfirmDialog } from '../components/common/ui';
 import { formatMoney } from '../utils/currency';
 import { dayKey, addDays, eachDayKey, relativeTime, dayKeyLabel } from '../utils/dates';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const RANGES = [
   { id: 'today', label: 'Today' },
@@ -84,6 +80,57 @@ export default function DashboardPage({ navigate }) {
   const cur = settings.currency;
   const salesLabel = rangeId === 'today' ? 'Sales — Today' : rangeId === '7d' ? 'Sales — Last 7 Days' : rangeId === '30d' ? 'Sales — Last 30 Days' : 'Sales — Custom Range';
 
+  const printDashboard = () => printReport({
+    title: 'Business Summary Report',
+    subtitle: `Period: ${dayKeyLabel(keys.from)} → ${dayKeyLabel(keys.to)}${rangeId === 'custom' ? ' (custom range)' : ''}`,
+    summary: statCards.map((c) => ({ label: c.label, value: String(c.value) })),
+    sections: [
+      {
+        heading: 'Top-selling products (period)',
+        columns: [{ label: '#' }, { label: 'Product' }, { label: 'Units sold', numeric: true }, { label: 'Revenue', numeric: true }],
+        rows: top.map((t, i) => [
+          i + 1,
+          state.products.find((p) => p.id === t.productId)?.name || '—',
+          t.qty.toLocaleString(),
+          formatMoney(t.revenue, cur),
+        ]),
+      },
+      {
+        heading: 'Inventory by category',
+        columns: [{ label: 'Category' }, { label: 'Products', numeric: true }, { label: 'Stock value', numeric: true }],
+        rows: categories.map((c) => [c.name, c.products, formatMoney(c.value * 100, cur)]),
+      },
+      {
+        heading: 'Critical stock alerts',
+        columns: [{ label: 'Product' }, { label: 'Location' }, { label: 'Available', numeric: true }, { label: 'Reorder at', numeric: true }, { label: 'Status' }],
+        rows: [...alerts.out, ...alerts.low].slice(0, 12).map((a) => [
+          a.product.name,
+          a.location ? a.location.name : 'All locations',
+          a.avail,
+          a.product.reorderLevel,
+          a.avail === 0 ? 'Out of stock' : 'Low stock',
+        ]),
+      },
+      {
+        heading: 'Expiry alerts',
+        columns: [{ label: 'Product' }, { label: 'Batch' }, { label: 'Location' }, { label: 'Qty', numeric: true }, { label: 'Status' }],
+        rows: [...expiry.expired, ...expiry.expiringToday, ...expiry.expiringSoon].slice(0, 12).map((r) => [
+          r.product.name,
+          String(r.batch.batchNo),
+          r.location?.name || '—',
+          r.batch.qty,
+          r.days < 0 ? `Expired ${-r.days}d ago` : r.days === 0 ? 'Expires today' : `Expires in ${r.days}d`,
+        ]),
+      },
+      {
+        heading: 'Recent transactions',
+        columns: [{ label: 'When' }, { label: 'Reference' }, { label: 'Event' }],
+        rows: recentActivity.map((a) => [relativeTime(a.at), a.refId, a.description]),
+      },
+    ],
+    note: 'Figures cover the selected period; stock, alerts and valuation are current as of the generated timestamp. Seed data is marked as demonstration history.',
+  });
+
   const statCards = [
     { label: 'Products', value: metrics.totalProducts, icon: Package, tone: 'blue', sub: `${categories.length ? categories.reduce((a, c) => a + c.products, 0) : metrics.totalProducts} active in catalog` },
     { label: 'Total Stock Units', value: metrics.totalUnits.toLocaleString(), icon: Boxes, tone: 'teal', sub: metrics.transitUnits ? `${metrics.transitUnits.toLocaleString()} units in transit` : 'across all locations' },
@@ -112,7 +159,7 @@ export default function DashboardPage({ navigate }) {
           ))}
         </div>
       </div>
-      <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Dashboard Print' })}><Print size={15} /> Print</button>
+      <button className="btn btn-outline" onClick={printDashboard}><Printer size={15} /> Print report</button>
 
       {rangeId === 'custom' ? (
         <div className="card card-pad" style={{ marginBottom: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -5,7 +5,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CalendarClock, CalendarX2, Hourglass, Download, Trash2, Eye, ShieldAlert, PackageMinus,
+  CalendarClock,
+  CalendarX2,
+  Hourglass,
+  Download,
+  Trash2,
+  Eye,
+  ShieldAlert,
+  PackageMinus,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
@@ -17,7 +25,7 @@ import {
 import { formatDate, daysUntil, relativeTime } from '../utils/dates';
 import { formatMoney } from '../utils/currency';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const PAGE_SIZE = 12;
 const SEG_IDS = ['expired', 'expiring_today', 'expiring_soon', 'dead_stock', 'healthy', 'all'];
@@ -129,6 +137,45 @@ export default function ExpiryPage() {
     });
   };
 
+  const printExpiry = () => {
+    const segLabel = SEGMENTS.find((s) => s.id === segment)?.label || segment;
+    printReport({
+      title: 'Expiry Management Report',
+      subtitle: `Segment: ${segLabel} · ${rows.length} ${isDead ? 'batch rows' : 'batches'}${q ? ` · search: “${q}”` : ''}${locF !== 'all' ? ` · location: ${state.locations.find((l) => l.id === locF)?.name}` : ''}`,
+      summary: [
+        { label: 'Expired batches', value: `${alerts.expired.length} (${fmt(expiredValue)})` },
+        { label: 'Expiring today', value: String(alerts.expiringToday.length) },
+        { label: 'At risk', value: `${alerts.expiringSoon.length} (${fmt(expiredAtRiskValue)})` },
+        { label: 'Dated batches tracked', value: String(allTracked.length) },
+        { label: 'Segment value', value: fmt(segmentValue) },
+      ],
+      sections: [
+        {
+          heading: `${segLabel} — batch detail`,
+          columns: [
+            { label: 'Product / SKU' }, { label: 'Location' }, { label: 'Batch' },
+            { label: 'Qty', numeric: true },
+            { label: isDead ? 'Last movement' : 'Expiry date' },
+            { label: isDead ? 'Idle days' : 'Days', numeric: true },
+            { label: 'Status' }, { label: 'Value', numeric: true },
+          ],
+          rows: rows.map((r) => [
+            `${r.product.name} (${r.product.sku})`,
+            r.location?.name || '—',
+            String(r.batch.batchNo),
+            r.batch.qty,
+            isDead ? formatDate(r.lastMovementAt, settings.dateFormat) : formatDate(r.batch.expDate, settings.dateFormat),
+            isDead ? r.days : (r.days < 0 ? `−${-r.days}` : r.days),
+            isDead ? 'no movement' : r.bucket.replace('_', ' '),
+            fmt(r.batch.qty * r.batch.cost),
+          ]),
+          totals: rows.length ? ['Total', '', '', rows.reduce((a, r) => a + r.batch.qty, 0), '', '', '', fmt(segmentValue)] : undefined,
+        },
+      ],
+      note: `Expired units are blocked at the POS automatically. Write-offs run through the issuance engine (FEFO). Dead stock = no movement for ${settings.deadStockDays}+ days (informational only).`,
+    });
+  };
+
   const exportCsv = () => {
     if (isDead) {
       downloadCSV('stockflow-dead-stock', rows, [
@@ -179,7 +226,7 @@ export default function ExpiryPage() {
             {deadProducts.length ? <Badge color="gray">{deadProducts.length} dead products</Badge> : null}
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Expiry Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printExpiry}><Printer size={15} /> Print report</button>
           <span className="muted" style={{ fontSize: 11.5 }}>warning window: <strong style={{ color: 'var(--text)' }}>{settings.expiryWarningDays} days</strong></span>
         </div>
       </div>

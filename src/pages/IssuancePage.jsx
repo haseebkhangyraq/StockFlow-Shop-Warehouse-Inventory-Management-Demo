@@ -1,8 +1,6 @@
 // src/pages/IssuancePage.jsx
 import { useEffect, useMemo, useState } from 'react';
-import {
-  PackageMinus, History, Download, Trash2, CircleCheck, ShieldAlert, Truck,
-} from 'lucide-react';
+import { PackageMinus, History, Download, Trash2, CircleCheck, ShieldAlert, Truck, Printer } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import {
   EmptyState, Field, TextInput, Select, TextArea, Badge, ConfirmDialog, SearchInput, Modal,
@@ -13,7 +11,7 @@ import { ISSUE_REASONS } from '../utils/constants';
 import { available } from '../services/inventoryEngine';
 import { formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 export default function IssuancePage() {
   const { state, settings, formatMoney, perform } = useInventory();
@@ -38,7 +36,20 @@ export default function IssuancePage() {
   }, []);
 
   const reasonDef = ISSUE_REASONS.find((r) => r.id === reason);
-  const setLine = (i, patch) => setLines((ls) => ls.map((l, j) => (i === j ? { ...l, ...patch } : l)));
+  const setLine = (i, patch) => setLines((ls) => {
+    const next = ls.map((l, j) => (i === j ? { ...l, ...patch } : l));
+    // when the last line is valid (product picked + qty within availability),
+    // open a fresh line for the next item automatically
+    const line = next[i];
+    const p = state.products.find((x) => x.id === line.productId);
+    const qtyNum = Number(line.qty);
+    const avail = p && sourceLocationId ? available(state, p.id, sourceLocationId) : 0;
+    const ok = !!p && Number.isInteger(qtyNum) && qtyNum > 0 && qtyNum <= avail;
+    if (ok && i === next.length - 1) {
+      next.push({ productId: '', qty: '' });
+    }
+    return next;
+  });
 
   const extended = lines.map((l) => {
     const product = state.products.find((x) => x.id === l.productId);
@@ -48,7 +59,9 @@ export default function IssuancePage() {
     return { ...l, product, qtyNum, avail, ok: !!product && Number.isInteger(qtyNum) && qtyNum > 0 && qtyNum <= avail };
   });
 
-  const canPost = extended.length > 0 && extended.every((l) => l.ok);
+  // the auto-opened trailing blank line (no product) must not block posting
+  const filled = extended.filter((l) => l.productId);
+  const canPost = filled.length > 0 && filled.every((l) => l.ok);
 
   const post = () => {
     setConfirmPost(false);
@@ -79,6 +92,46 @@ export default function IssuancePage() {
     return history.filter((r) => r.ref.toLowerCase().includes(n) || (r.destination || '').toLowerCase().includes(n) || (r.notes || '').toLowerCase().includes(n));
   }, [history, hq]);
 
+  const printIssuance = () => {
+    const draft = extended.filter((l) => l.ok);
+    printReport({
+      title: 'Stock Issuance Report',
+      subtitle: `Draft document · from ${state.locations.find((l) => l.id === sourceLocationId)?.name || '—'} · ${reasonDef?.label || reason}${reasonDef?.needsShopDest ? ` → ${state.locations.find((l) => l.id === destinationLocationId)?.name || '—'}` : destination ? ` → ${destination}` : ''}${reference ? ` · Ref ${reference}` : ''}`,
+      summary: [
+        { label: 'Draft lines', value: String(draft.length) },
+        { label: 'Units in draft', value: draft.reduce((a, l) => a + l.qtyNum, 0).toLocaleString() },
+        { label: 'Reason', value: reasonDef?.label || reason },
+        { label: 'Issues on record', value: String(history.length) },
+      ],
+      sections: [
+        {
+          heading: 'Items being issued (draft)',
+          columns: [{ label: 'Product / SKU' }, { label: 'Qty', numeric: true }, { label: 'Available at source', numeric: true }, { label: 'Remaining after', numeric: true }],
+          rows: draft.map((l) => [
+            `${l.product.name} (${l.product.sku})`,
+            l.qtyNum,
+            l.avail,
+            l.avail - l.qtyNum,
+          ]),
+          totals: draft.length ? ['Total units', draft.reduce((a, l) => a + l.qtyNum, 0), '', ''] : undefined,
+        },
+        {
+          heading: 'Issuance history (latest 25)',
+          columns: [{ label: 'Issue' }, { label: 'Date' }, { label: 'Source' }, { label: 'Reason' }, { label: 'Destination' }, { label: 'Items' }],
+          rows: filtered.slice(0, 25).map((r) => [
+            r.ref,
+            formatDateTime(r.createdAt, settings.dateFormat),
+            state.locations.find((l) => l.id === r.sourceLocationId)?.name || '—',
+            ISSUE_REASONS.find((x) => x.id === r.reason)?.label || r.reason,
+            r.destination || '—',
+            r.lines.map((l) => `${l.qty} × ${state.products.find((p) => p.id === l.productId)?.name || '—'}`).join('; '),
+          ]),
+        },
+      ],
+      note: 'Issued units are removed from the source location immediately; reserved stock (pending transfers) can never be issued twice. Write-offs consume the oldest batches first (FEFO).',
+    });
+  };
+
   const exportCsv = () => {
     const rep = buildReport(state, 'issuance');
     downloadCSV('stockflow-issues-log', rep.rows, rep.columns);
@@ -93,11 +146,12 @@ export default function IssuancePage() {
         </div>
         <div className="page-head-actions">
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export log</button>
+          <button className="btn btn-outline" onClick={printIssuance}><Printer size={15} /> Print report</button>
         </div>
       </div>
 
       <div className="grid-2-1 section" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
-        <div className="card">
+        <div className="card no-print">
           <div className="card-head"><h3>New issuance</h3><Badge color="amber">confirm before commit</Badge></div>
           <div className="card-pad">
             <div className="form-grid">
@@ -178,7 +232,7 @@ export default function IssuancePage() {
           </div>
         </div>
 
-        <div className="card card-pad">
+        <div className="card card-pad no-print">
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
             <Truck size={17} style={{ color: 'var(--primary)' }} />
             <strong style={{ fontSize: 13.5 }}>How issuance works</strong>

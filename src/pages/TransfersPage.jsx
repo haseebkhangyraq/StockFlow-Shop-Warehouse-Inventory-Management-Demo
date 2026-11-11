@@ -1,7 +1,16 @@
 // src/pages/TransfersPage.jsx
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Truck, Download, Send, Trash2, PackageCheck, Ban, CircleAlert, Plus, ClipboardCheck,
+  Truck,
+  Download,
+  Send,
+  Trash2,
+  PackageCheck,
+  Ban,
+  CircleAlert,
+  Plus,
+  ClipboardCheck,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import {
@@ -13,7 +22,7 @@ import { available, onHand, inTransit } from '../services/inventoryEngine';
 import { buildReport } from '../services/reportingService';
 import { formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 export default function TransfersPage() {
   const { state, settings, formatMoney, perform } = useInventory();
@@ -78,6 +87,42 @@ export default function TransfersPage() {
 
   const canCreate = lines.some((l) => state.products.some((p) => p.id === l.productId) && Number.isInteger(Number(l.qty)) && Number(l.qty) > 0);
 
+  const printTransfers = () => {
+    const counts = {
+      pending: transfers.filter((t) => t.status === 'pending').length,
+      inTransit: transfers.filter((t) => t.status === 'in_transit').length,
+      received: transfers.filter((t) => t.status === 'received').length,
+      cancelled: transfers.filter((t) => t.status === 'cancelled').length,
+    };
+    printReport({
+      title: 'Stock Transfer Register',
+      subtitle: `${filtered.length} of ${transfers.length} transfers${statusF !== 'all' ? ` · status filter: ${statusF.replace('_', ' ')}` : ''}${q ? ` · search: “${q}”` : ''}`,
+      summary: [
+        { label: 'Pending dispatch', value: String(counts.pending) },
+        { label: 'In transit', value: String(counts.inTransit) },
+        { label: 'Completed', value: String(counts.received) },
+        { label: 'Cancelled', value: String(counts.cancelled) },
+        { label: 'Units in transit', value: transitUnits.toLocaleString() },
+      ],
+      sections: [
+        {
+          heading: 'Transfer register',
+          columns: [{ label: 'Transfer' }, { label: 'Created' }, { label: 'Route' }, { label: 'Items' }, { label: 'Units', numeric: true }, { label: 'Status' }],
+          rows: filtered.map((t) => [
+            t.ref,
+            formatDateTime(t.createdAt, settings.dateFormat),
+            `${state.locations.find((l) => l.id === t.sourceLocationId)?.name || '—'} → ${state.locations.find((l) => l.id === t.destinationLocationId)?.name || '—'}`,
+            t.lines.map((l) => `${l.qty} × ${state.products.find((p) => p.id === l.productId)?.name || '—'}`).join('; '),
+            t.lines.reduce((a, l) => a + l.qty, 0),
+            t.status.replace('_', ' '),
+          ]),
+          totals: filtered.length ? ['Total', '', '', '', filtered.reduce((a, t) => a + t.lines.reduce((b, l) => b + l.qty, 0), 0), ''] : undefined,
+        },
+      ],
+      note: 'Creating a transfer reserves stock at the source; dispatching moves it in transit (counted at neither location); receiving credits the destination with the exact batches and expiry dates.',
+    });
+  };
+
   return (
     <>
       <div className="page-head">
@@ -92,7 +137,7 @@ export default function TransfersPage() {
           <button className="btn btn-secondary" onClick={() => { const rep = buildReport(state, 'transfers'); downloadCSV('stockflow-transfer-register', rep.rows, rep.columns); }}>
             <Download size={15} /> Export register
           </button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Transfers Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printTransfers}><Printer size={15} /> Print report</button>
           <button className="btn btn-primary" onClick={() => setCreateOpen(true)}><Plus size={15} /> New transfer</button>
         </div>
       </div>

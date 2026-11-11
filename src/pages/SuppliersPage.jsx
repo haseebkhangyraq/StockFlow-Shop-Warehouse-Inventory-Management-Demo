@@ -4,7 +4,17 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Building2, Download, Plus, Pencil, Trash2, Eye, Phone, Mail, MapPin, FileText,
+  Building2,
+  Download,
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  Phone,
+  Mail,
+  MapPin,
+  FileText,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
@@ -14,7 +24,7 @@ import {
 import { formatMoney } from '../utils/currency';
 import { formatDate } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const BLANK = { companyName: '', contactPerson: '', phone: '', email: '', address: '', notes: '' };
 
@@ -89,6 +99,36 @@ export default function SuppliersPage() {
     ]);
   };
 
+  const printSuppliers = () => printReport({
+    title: 'Supplier Directory Report',
+    subtitle: `${rows.length} suppliers${q ? ` · search: “${q}”` : ''}`,
+    summary: [
+      { label: 'Suppliers', value: String(rows.length) },
+      { label: 'Total purchased', value: fmt(rows.reduce((a, r) => a + r.spend, 0)) },
+      { label: 'Total receipts', value: String(rows.reduce((a, r) => a + r.receiptCount, 0)) },
+      { label: 'Products supplied', value: String(rows.reduce((a, r) => a + r.productCount, 0)) },
+    ],
+    sections: [
+      {
+        heading: 'Suppliers & purchasing',
+        columns: [
+          { label: 'Company' }, { label: 'Contact person' }, { label: 'Phone' },
+          { label: 'Products', numeric: true }, { label: 'Receipts', numeric: true },
+          { label: 'Purchased value', numeric: true }, { label: 'Last receipt' },
+        ],
+        rows: rows.map((s) => [
+          s.companyName,
+          s.contactPerson || '—',
+          s.phone || '—',
+          s.productCount, s.receiptCount, fmt(s.spend),
+          s.lastReceipt ? formatDate(s.lastReceipt, settings.dateFormat) : 'none',
+        ]),
+        totals: ['Total', '', '', rows.reduce((a, r) => a + r.productCount, 0), rows.reduce((a, r) => a + r.receiptCount, 0), fmt(rows.reduce((a, r) => a + r.spend, 0)), ''],
+      },
+    ],
+    note: 'Purchased value is calculated from receiving history (qty × unit cost per receipt line).',
+  });
+
   const err = (k) => errors[k] ? <span className="field-error">{errors[k]}</span> : null;
 
   return (
@@ -104,7 +144,7 @@ export default function SuppliersPage() {
             <Badge color="blue">{fmt(rows.reduce((a, r) => a + r.spend, 0))} purchased</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Suppliers Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printSuppliers}><Printer size={15} /> Print report</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add supplier</button>
         </div>
       </div>

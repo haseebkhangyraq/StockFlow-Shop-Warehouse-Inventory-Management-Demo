@@ -4,8 +4,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Boxes, Warehouse as WarehouseIcon, Eye, Download, CircleDollarSign, TrendingUp,
-  Truck, Layers, Store,
+  Boxes,
+  Warehouse as WarehouseIcon,
+  Eye,
+  Download,
+  CircleDollarSign,
+  TrendingUp,
+  Truck,
+  Layers,
+  Store,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import ProductDetail from '../components/warehouse/ProductDetail';
@@ -20,7 +28,7 @@ import {
 import { formatMoney } from '../utils/currency';
 import { relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const PAGE_SIZE = 12;
 const LOC_ICON = { warehouse: WarehouseIcon, shop: Store };
@@ -155,6 +163,64 @@ export default function InventoryPage() {
     }
   };
 
+  const statusText = (s) => (s === 'out' ? 'Out of stock' : s === 'low' ? 'Low stock' : s === 'overstocked' ? 'Overstocked' : 'In stock');
+
+  const printInventory = () => printReport({
+    title: 'Inventory Stock Report',
+    subtitle: `${sorted.length} SKUs · ${locF === 'all' ? 'all locations' : `at ${state.locations.find((l) => l.id === locF)?.name || '—'}`}`,
+    meta: [
+      { label: 'Currency', value: cur },
+      { label: 'Filters', value: [cat !== 'all' && state.categories.find((c) => c.id === cat)?.name, statusF !== 'all' && statusText(statusF), onlyAlerts && 'alerting SKUs only'].filter(Boolean).join(' · ') || 'none' },
+    ],
+    summary: [
+      { label: 'Units on hand', value: valuation.units.toLocaleString() },
+      { label: 'Inventory value (WAC)', value: formatMoney(valuation.costValue - valuation.transitValue, cur) },
+      { label: 'Retail value', value: formatMoney(valuation.retailValue, cur) },
+      { label: 'In transit', value: `${valuation.transitUnits.toLocaleString()} units` },
+    ],
+    sections: [
+      {
+        heading: 'Location summary',
+        columns: [{ label: 'Location' }, { label: 'Type' }, { label: 'Units', numeric: true }, { label: 'SKUs stocked', numeric: true }, { label: 'Stock value', numeric: true }, { label: 'Retail value', numeric: true }],
+        rows: locSummaries.map((s) => [s.location.name, s.location.type, s.units, s.skus, fmt(s.value), fmt(s.retail)]),
+        totals: ['Total', '', locSummaries.reduce((a, s) => a + s.units, 0), '', fmt(locSummaries.reduce((a, s) => a + s.value, 0)), fmt(locSummaries.reduce((a, s) => a + s.retail, 0))],
+      },
+      {
+        heading: locF === 'all' ? 'Stock by product (all locations)' : `Stock at ${state.locations.find((l) => l.id === locF)?.name || ''}`,
+        columns: locF === 'all'
+          ? [
+              { label: 'Product / SKU' }, { label: 'Category' },
+              ...state.locations.map((l) => ({ label: shortLoc(l), numeric: true })),
+              { label: 'On hand', numeric: true }, { label: 'Reserved', numeric: true }, { label: 'In transit', numeric: true },
+              { label: 'Sellable', numeric: true }, { label: 'Status' }, { label: 'Stock value', numeric: true },
+            ]
+          : [
+              { label: 'Product / SKU' }, { label: 'Category' },
+              { label: 'On hand', numeric: true }, { label: 'Reserved', numeric: true }, { label: 'Available', numeric: true },
+              { label: 'Sellable', numeric: true }, { label: 'Expired here', numeric: true }, { label: 'Status' },
+              { label: 'Reorder at', numeric: true }, { label: 'Stock value', numeric: true },
+            ],
+        rows: locF === 'all'
+          ? sorted.map((p) => [
+              `${p.name} (${p.sku})`, p.categoryName,
+              ...state.locations.map((l) => p.perLoc[l.id].onHand),
+              p.units, p.reservedTotal || '—', p.transit || '—', p.sellableTotal,
+              statusText(p.status), fmt(p.value),
+            ])
+          : sorted.map((p) => [
+              `${p.name} (${p.sku})`, p.categoryName,
+              p.perLoc[locF].onHand, p.perLoc[locF].reserved || '—', p.perLoc[locF].available,
+              p.perLoc[locF].sellable, p.expiredUnits || '—', statusText(p.perLoc[locF].status),
+              p.reorderLevel, fmt(p.perLoc[locF].onHand * p.costPrice),
+            ]),
+        totals: locF === 'all'
+          ? ['Total', '', ...state.locations.map((l) => sorted.reduce((a, p) => a + p.perLoc[l.id].onHand, 0)), sorted.reduce((a, p) => a + p.units, 0), sorted.reduce((a, p) => a + p.reservedTotal, 0), sorted.reduce((a, p) => a + p.transit, 0), sorted.reduce((a, p) => a + p.sellableTotal, 0), '', fmt(sorted.reduce((a, p) => a + p.value, 0))]
+          : ['Total', '', sorted.reduce((a, p) => a + p.perLoc[locF].onHand, 0), sorted.reduce((a, p) => a + p.perLoc[locF].reserved, 0), sorted.reduce((a, p) => a + p.perLoc[locF].available, 0), sorted.reduce((a, p) => a + p.perLoc[locF].sellable, 0), sorted.reduce((a, p) => a + p.expiredUnits, 0), '', '', fmt(sorted.reduce((a, p) => a + p.perLoc[locF].onHand * p.costPrice, 0))],
+      },
+    ],
+    note: 'Available = on hand − reserved for pending transfers. In-transit units are counted at neither location. Sellable excludes expired units for expiry-tracked products.',
+  });
+
   const stat = [
     { label: 'Units on hand', value: valuation.units.toLocaleString(), icon: Boxes, tone: 'teal', sub: 'across every location' },
     { label: 'Inventory value (WAC)', value: formatMoney(valuation.costValue - valuation.transitValue, cur), icon: CircleDollarSign, tone: 'violet', sub: 'batch records, weighted average cost' },
@@ -175,7 +241,7 @@ export default function InventoryPage() {
             <Badge color="blue">{formatMoney(valuation.costValue, cur)} total</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Inventory Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printInventory}><Printer size={15} /> Print report</button>
         </div>      </div>
 
       <div className="stat-grid section">

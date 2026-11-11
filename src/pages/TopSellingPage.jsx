@@ -3,14 +3,21 @@
 // (net of returns), revenue, stock-on-hand context and direct navigation.
 
 import { useMemo, useState } from 'react';
-import { TrendingUp, Download, Eye, Medal, PackageSearch } from 'lucide-react';
+import {
+  TrendingUp,
+  Download,
+  Eye,
+  Medal,
+  PackageSearch,
+  Printer,
+} from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
 import { EmptyState, SearchInput, Badge, Pagination } from '../components/common/ui';
 import { getTopProducts } from '../services/reportingService';
 import { dayKey, addDays } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const PAGE_SIZE = 12;
 
@@ -64,6 +71,36 @@ export default function TopSellingPage() {
   const totalUnits = sellers.reduce((a, r) => a + r.qty, 0);
   const totalRevenue = sellers.reduce((a, r) => a + r.revenue, 0);
   const best = sellers[0];
+
+  const printTopSellers = () => printReport({
+    title: 'Top Selling Products Report',
+    subtitle: `${win.label}${fromKey ? ` (${fromKey} → today)` : ' (full history)'} · ${rows.length} products${q ? ` · search: “${q}”` : ''}`,
+    summary: best ? [
+      { label: 'Best seller', value: `${best.qty.toLocaleString()} ${best.product.unit}` },
+      { label: 'Units sold (window)', value: totalUnits.toLocaleString() },
+      { label: 'Revenue (window)', value: fmt(totalRevenue) },
+      { label: 'Catalog coverage', value: `${Math.round((sellers.length / Math.max(1, state.products.filter((p) => p.status === 'active').length)) * 100)}%` },
+    ] : [],
+    sections: [
+      {
+        heading: 'Ranking (net of returns)',
+        columns: [
+          { label: '#', numeric: true }, { label: 'Product / SKU' }, { label: 'Category' },
+          { label: 'Units sold', numeric: true }, { label: 'Revenue', numeric: true },
+          { label: 'On hand', numeric: true }, { label: 'Stock status' },
+        ],
+        rows: rows.map((r, i) => [
+          i + 1,
+          `${r.product.name} (${r.product.sku})`,
+          state.categories.find((c) => c.id === r.product.categoryId)?.name || '—',
+          r.qty.toLocaleString(), fmt(r.revenue), `${r.onHand} ${r.product.unit}`,
+          engine.stockStatus(state, r.product.id).replace('_', ' '),
+        ]),
+        totals: rows.length ? ['', 'Total', '', totalUnits.toLocaleString(), fmt(totalRevenue), '', ''] : undefined,
+      },
+    ],
+    note: 'Units sold are net of returns and grouped per product across all locations for the chosen window. Revenue is list price × units sold.',
+  });
 
   const exportCsv = () => {
     downloadCSV(`stockflow-top-sellers-${winId}`, rows.map((r, i) => ({ ...r, rank: i + 1 })), [
@@ -124,7 +161,7 @@ export default function TopSellingPage() {
           <button className="btn btn-secondary" onClick={exportCsv} disabled={!rows.length}>
             <Download size={15} /> Export CSV
           </button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Top Sellers Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printTopSellers}><Printer size={15} /> Print report</button>
           {best ? (
             <span className="muted" style={{ fontSize: 11.5 }}>
               #1: <strong style={{ color: 'var(--text)' }}>{best.product.name}</strong> · {best.qty} {best.product.unit}

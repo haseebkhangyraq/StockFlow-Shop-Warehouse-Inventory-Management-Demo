@@ -1,8 +1,6 @@
 // src/pages/ReceivingPage.jsx
 import { useEffect, useMemo, useState } from 'react';
-import {
-  PackagePlus, History, Building2, Download, Trash2, CircleCheck, ScanLine, User, Phone, Mail, MapPin,
-} from 'lucide-react';
+import { PackagePlus, History, Building2, Download, Trash2, CircleCheck, ScanLine, User, Phone, Mail, MapPin, Printer } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import {
   EmptyState, Field, TextInput, Select, TextArea, Badge, ConfirmDialog, SearchInput,
@@ -12,7 +10,7 @@ import { buildReport } from '../services/reportingService';
 import { formatMoney, parseMoneyInput, minorToInput } from '../utils/currency';
 import { dayKey, toDateInputValue, formatDateTime, relativeTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 export default function ReceivingPage() {
   const { state, settings, formatMoney, perform } = useInventory();
@@ -41,7 +39,24 @@ export default function ReceivingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setLine = (i, patch) => setLines((ls) => ls.map((l, j) => (i === j ? { ...l, ...patch } : l)));
+  const setLine = (i, patch) => setLines((ls) => {
+    const next = ls.map((l, j) => (i === j ? { ...l, ...patch } : l));
+    // when the last line is fully filled, open a fresh line for the next item
+    // automatically — no need to click "+ Add line"
+    const line = next[i];
+    const p = state.products.find((x) => x.id === line.productId);
+    const qtyNum = Number(line.qty);
+    const costNum = parseMoneyInput(line.unitCost);
+    const complete = !!p
+      && Number.isInteger(qtyNum) && qtyNum > 0
+      && Number.isFinite(costNum) && costNum >= 0
+      && (!p.trackBatch || String(line.batchNo).trim() !== '')
+      && (!p.trackExpiry || line.expDate !== '');
+    if (complete && i === next.length - 1) {
+      next.push({ productId: '', qty: '', unitCost: '', batchNo: '', expDate: '', mfgDate: '' });
+    }
+    return next;
+  });
 
   const onProductChange = (i, productId) => {
     const p = state.products.find((x) => x.id === productId);
@@ -67,7 +82,10 @@ export default function ReceivingPage() {
     return { ...l, product: p, qtyNum, unitCostNum, hasQty: Number.isInteger(qtyNum) && qtyNum > 0, hasCost: Number.isFinite(unitCostNum) && unitCostNum >= 0, track };
   }).map((l) => ({ ...l, lineTotal: l.hasQty && l.hasCost ? l.qtyNum * l.unitCostNum : 0 }));
 
-  const canPost = lines.length > 0 && extended.every((l) => l.product && l.hasQty && l.hasCost) && !!supplierId && !!locationId;
+  // the auto-opened trailing blank line (no product) must not block posting
+  const canPost = lines.length > 0
+    && extended.filter((l) => l.productId).every((l) => l.product && l.hasQty && l.hasCost)
+    && !!supplierId && !!locationId;
 
   const post = () => {
     setConfirmPost(false);
@@ -101,6 +119,48 @@ export default function ReceivingPage() {
     return history.filter((r) => r.ref.toLowerCase().includes(n) || (r.invoiceNo || '').toLowerCase().includes(n) || state.suppliers.find((s) => s.id === r.supplierId)?.companyName.toLowerCase().includes(n));
   }, [history, hq, state.suppliers]);
 
+  const printReceiving = () => {
+    const draft = extended.filter((l) => l.product && l.hasQty);
+    const draftTotal = draft.reduce((a, l) => a + l.lineTotal, 0);
+    printReport({
+      title: 'Stock Receiving Report',
+      subtitle: `Draft document · ${state.suppliers.find((s) => s.id === supplierId)?.companyName || '—'} → ${state.locations.find((l) => l.id === locationId)?.name || '—'} · ${date}${invoiceNo ? ` · Invoice ${invoiceNo}` : ''}`,
+      summary: [
+        { label: 'Draft lines', value: String(draft.length) },
+        { label: 'Units in draft', value: draft.reduce((a, l) => a + l.qtyNum, 0).toLocaleString() },
+        { label: 'Draft total value', value: fmt(draftTotal) },
+        { label: 'Receipts on record', value: String(history.length) },
+      ],
+      sections: [
+        {
+          heading: 'Goods received (draft)',
+          columns: [{ label: 'Product / SKU' }, { label: 'Batch no.' }, { label: 'Expiry' }, { label: 'Qty', numeric: true }, { label: 'Unit cost', numeric: true }, { label: 'Line total', numeric: true }],
+          rows: draft.map((l) => [
+            `${l.product.name} (${l.product.sku})`,
+            l.track.batch ? (l.batchNo || '—') : 'n/a',
+            l.track.expiry ? (l.expDate || '—') : 'n/a',
+            l.qtyNum, fmt(l.unitCostNum), fmt(l.lineTotal),
+          ]),
+          totals: draft.length ? ['Total', '', '', draft.reduce((a, l) => a + l.qtyNum, 0), '', fmt(draftTotal)] : undefined,
+        },
+        {
+          heading: 'Receiving history (latest 25)',
+          columns: [{ label: 'Receipt' }, { label: 'Date' }, { label: 'Supplier' }, { label: 'Destination' }, { label: 'Items' }, { label: 'Value', numeric: true }],
+          rows: filteredHistory.slice(0, 25).map((r) => [
+            r.ref,
+            formatDateTime(r.createdAt, settings.dateFormat),
+            state.suppliers.find((s) => s.id === r.supplierId)?.companyName || '—',
+            state.locations.find((l) => l.id === r.locationId)?.name || '—',
+            r.lines.map((l) => `${l.qty} × ${state.products.find((p) => p.id === l.productId)?.name || '—'}`).join('; '),
+            fmt(r.lines.reduce((a, l) => a + l.qty * l.unitCost, 0)),
+          ]),
+          totals: filteredHistory.length ? ['Total', '', '', '', '', fmt(filteredHistory.reduce((a, r) => a + r.lines.reduce((b, l) => b + l.qty * l.unitCost, 0), 0))] : undefined,
+        },
+      ],
+      note: 'Stock and valuation only change once a receipt is confirmed. Expiry-tracked goods become batch records consumed FEFO; unit cost refreshes the product’s weighted average cost.',
+    });
+  };
+
   const exportCsv = () => {
     const rep = buildReport(state, 'receiving');
     downloadCSV('stockflow-receiving-log', rep.rows, rep.columns);
@@ -115,11 +175,12 @@ export default function ReceivingPage() {
         </div>
         <div className="page-head-actions">
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export log</button>
+          <button className="btn btn-outline" onClick={printReceiving}><Printer size={15} /> Print report</button>
         </div>
       </div>
 
       <div className="grid-2-1 section" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
-        <div className="card">
+        <div className="card no-print">
           <div className="card-head"><h3><ScanLine size={15} /> New receiving document</h3><Badge color="blue">preview before posting</Badge></div>
           <div className="card-pad">
             <div className="form-grid">
@@ -223,7 +284,7 @@ export default function ReceivingPage() {
           </div>
         </div>
 
-        <div>
+        <div className="no-print">
           <div className="card card-pad section-bottom">
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
               <Building2 size={17} style={{ color: 'var(--primary)' }} />

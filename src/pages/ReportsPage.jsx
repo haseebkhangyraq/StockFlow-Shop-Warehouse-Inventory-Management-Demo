@@ -4,9 +4,22 @@
 
 import { useMemo, useState } from 'react';
 import {
-  BarChart3, Download, Boxes, ArrowLeftRight, PackagePlus,
-  PackageMinus, Truck, ShoppingCart, AlertTriangle, CalendarClock, Hourglass,
-  CircleDollarSign, Award, PieChart, Info,
+  BarChart3,
+  Download,
+  Boxes,
+  ArrowLeftRight,
+  PackagePlus,
+  PackageMinus,
+  Truck,
+  ShoppingCart,
+  AlertTriangle,
+  CalendarClock,
+  Hourglass,
+  CircleDollarSign,
+  Award,
+  PieChart,
+  Info,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { REPORT_LIST, buildReport } from '../services/reportingService';
@@ -14,7 +27,7 @@ import { EmptyState, Badge, ConfirmDialog } from '../components/common/ui';
 import { formatMoney } from '../utils/currency';
 import { dayKey, dayKeyLabel, addDays } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent, printTable } from '../utils/print';
+import { printReport, printTable } from '../utils/print';
 
 const RANGES = [
   { id: '30d', label: 'Last 30 days' },
@@ -73,6 +86,33 @@ export default function ReportsPage() {
     }
   };
 
+  const printCurrentReport = () => printReport({
+    title: `${report.label} — Report`,
+    subtitle: showRange
+      ? `Period: ${range ? `${dayKeyLabel(range.from)} → ${dayKeyLabel(range.to)}` : 'all time'} · ${built.rows.length} rows`
+      : `Current stock position — date filter not applicable · ${built.rows.length} rows`,
+    summary: Object.entries(built.totals || {})
+      .filter(([, v]) => Number.isFinite(v))
+      .map(([k, v]) => ({
+        label: k.replace(/([A-Z])/g, ' $1').replace(/^./, (m) => m.toUpperCase()),
+        value: MONEY_KEYS.has(k) ? fmt(v) : v.toLocaleString(),
+      })),
+    note: built.note,
+    sections: [
+      {
+        heading: report.label,
+        columns: built.columns.map((c) => ({
+          label: c.label,
+          numeric: /units|qty|value|total|revenue|cost|price|level|days|rank|wac|share|orders/i.test(c.label),
+        })),
+        rows: built.rows.slice(0, 300).map((row, i) => built.columns.map((c) => {
+          const v = typeof c.value === 'function' ? c.value(row, i) : row[c.value];
+          return v === null || v === undefined || v === '' ? '—' : String(v);
+        })),
+      },
+    ],
+  });
+
   /* (totals render inline with money handling below) */
 
   return (
@@ -86,7 +126,7 @@ export default function ReportsPage() {
           <Badge color="teal">{REPORT_LIST.length} reports</Badge>
           <button className="btn btn-secondary" onClick={() => setPreviewOpen(true)}><Boxes size={15} /> Export all</button>
           <button className="btn btn-primary" onClick={exportCsv} disabled={!built.rows.length}><Download size={15} /> Export this report</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: `${report.label} Report` })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printCurrentReport}><Printer size={15} /> Print report</button>
         </div>
       </div>
 

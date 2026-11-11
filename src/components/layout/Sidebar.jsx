@@ -1,9 +1,5 @@
 // src/components/layout/Sidebar.jsx
-import {
-  LayoutDashboard, Warehouse, Boxes, PackagePlus, PackageMinus, Truck, ShoppingCart,
-  History, Building2, Users, Tags, CalendarClock, BarChart3, Activity, Settings,
-  PanelLeftClose, Sparkles, TrendingUp,
-} from 'lucide-react';
+import { LayoutDashboard, Warehouse, Boxes, PackagePlus, PackageMinus, Truck, ShoppingCart, History, Building2, Users, Tags, CalendarClock, BarChart3, Activity, Settings, PanelLeftClose, Sparkles, TrendingUp } from 'lucide-react';
 
 const NAV_SECTIONS = [
   {

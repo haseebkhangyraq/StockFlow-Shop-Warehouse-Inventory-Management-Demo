@@ -3,7 +3,17 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Users, Download, Plus, Pencil, Trash2, Phone, Mail, StickyNote, ShoppingCart, History,
+  Users,
+  Download,
+  Plus,
+  Pencil,
+  Trash2,
+  Phone,
+  Mail,
+  StickyNote,
+  ShoppingCart,
+  History,
+  Printer,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
@@ -13,7 +23,7 @@ import {
 import { formatMoney } from '../utils/currency';
 import { formatDateTime } from '../utils/dates';
 import { downloadCSV } from '../utils/csv';
-import { printPageContent } from '../utils/print';
+import { printReport } from '../utils/print';
 
 const PAGE_SIZE = 9;
 const BLANK = { name: '', phone: '', email: '', notes: '' };
@@ -89,6 +99,38 @@ export default function CustomersPage() {
     ]);
   };
 
+  const printCustomers = () => printReport({
+    title: 'Customer Directory Report',
+    subtitle: `${rows.length} customers${q ? ` · search: “${q}”` : ''}`,
+    summary: [
+      { label: 'Customers', value: String(rows.length) },
+      { label: 'Lifetime sales', value: fmt(rows.reduce((a, r) => a + r.spend, 0)) },
+      { label: 'Total orders', value: String(rows.reduce((a, r) => a + r.orders, 0)) },
+      { label: 'Returned', value: fmt(rows.reduce((a, r) => a + (r.returned || 0), 0)) },
+    ],
+    sections: [
+      {
+        heading: 'Customers & purchase behaviour',
+        columns: [
+          { label: 'Customer' }, { label: 'Phone' }, { label: 'Email' },
+          { label: 'Orders', numeric: true }, { label: 'Lifetime spend', numeric: true },
+          { label: 'Avg order', numeric: true }, { label: 'Last purchase' },
+        ],
+        rows: rows.map((c) => [
+          c.name,
+          c.phone || '—',
+          c.email || '—',
+          c.orders || '—',
+          c.orders ? fmt(c.spend) : '—',
+          c.orders ? fmt(c.avgOrder) : '—',
+          c.lastPurchase ? formatDateTime(c.lastPurchase, settings.dateFormat) : 'no purchase yet',
+        ]),
+        totals: ['Total', '', '', rows.reduce((a, r) => a + r.orders, 0), fmt(rows.reduce((a, r) => a + r.spend, 0)), '', ''],
+      },
+    ],
+    note: 'Spend is derived from POS history net of returns; walk-in customers without purchases are listed with no figures.',
+  });
+
   const err = (k) => errors[k] ? <span className="field-error">{errors[k]}</span> : null;
   const detailPurchases = detail ? state.sales.filter((s) => s.customerId === detail.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 8) : [];
 
@@ -105,7 +147,7 @@ export default function CustomersPage() {
             <Badge color="green">{fmt(rows.reduce((a, r) => a + r.spend, 0))} lifetime sales</Badge>
           </div>
           <button className="btn btn-secondary" onClick={exportCsv}><Download size={15} /> Export CSV</button>
-          <button className="btn btn-outline" onClick={() => printPageContent({ title: 'Customers Print' })}><Print size={15} /> Print</button>
+          <button className="btn btn-outline" onClick={printCustomers}><Printer size={15} /> Print report</button>
           <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add customer</button>
         </div>
       </div>

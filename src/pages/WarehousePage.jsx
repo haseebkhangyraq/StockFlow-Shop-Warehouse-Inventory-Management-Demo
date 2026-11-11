@@ -1,9 +1,6 @@
 // src/pages/WarehousePage.jsx
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Warehouse as WarehouseIcon, Package, PackagePlus, SlidersHorizontal, Archive,
-  Trash2, Eye, Pencil, Download, PanelTop,
-} from 'lucide-react';
+import { Warehouse as WarehouseIcon, Package, PackagePlus, SlidersHorizontal, Archive, Trash2, Eye, Pencil, Download, PanelTop } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import * as engine from '../services/inventoryEngine';
 import ProductForm from '../components/warehouse/ProductForm';
